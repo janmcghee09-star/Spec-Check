@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spec-Check Premortem Assistant</title>
-    <meta name="description" content="AI-powered PRD analysis tool that identifies risks, gaps, and edge cases before launch">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -36,21 +37,20 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             overflow: hidden;
-            line-height: 1.6;
         }
 
         .app-container {
             display: flex;
             height: 100vh;
-            position: relative;
         }
 
+        /* Header */
         .app-header {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
+            height: 64px;
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
             display: flex;
@@ -60,53 +60,21 @@
             box-shadow: 0 2px 8px var(--shadow-color);
         }
 
-        .header-logo {
-            font-size: 20px;
+        .app-logo {
+            font-size: 24px;
             font-weight: 600;
-            color: var(--text-primary);
-            margin-right: auto;
             font-family: 'Instrument Serif', serif;
+            color: var(--text-primary);
         }
 
-        .header-badge {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
-            color: var(--bg-primary);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-left: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .app-logo span {
+            color: var(--accent-blue);
         }
 
         .header-actions {
+            margin-left: auto;
             display: flex;
             gap: 12px;
-            align-items: center;
-        }
-
-        .api-status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .api-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text-tertiary);
-        }
-
-        .api-status-dot.active {
-            background: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
         }
 
         .header-btn {
@@ -123,113 +91,189 @@
 
         .header-btn:hover {
             background: var(--border-color);
-            border-color: var(--text-tertiary);
+            transform: translateY(-1px);
         }
 
-        .editor-panel {
+        /* Main Layout */
+        .main-content {
+            display: flex;
+            width: 100%;
+            margin-top: 64px;
+        }
+
+        .editor-pane {
             flex: 1;
             display: flex;
             flex-direction: column;
-            margin-top: 60px;
             border-right: 1px solid var(--border-color);
         }
 
-        .editor-toolbar {
-            display: flex;
-            gap: 8px;
-            padding: 16px 20px;
+        .editor-header {
+            padding: 20px 24px;
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
         }
 
-        .toolbar-btn {
-            padding: 8px 16px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-secondary);
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .toolbar-btn:hover {
-            background: var(--border-color);
-            color: var(--text-primary);
-        }
-
-        .toolbar-btn.primary {
-            background: var(--accent-blue);
-            border-color: var(--accent-blue);
-            color: white;
+        .editor-title {
+            font-size: 16px;
             font-weight: 600;
-        }
-
-        .toolbar-btn.primary:hover {
-            background: #3a8eef;
-        }
-
-        .toolbar-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+            color: var(--text-secondary);
         }
 
         .editor-content {
             flex: 1;
-            padding: 20px;
-            overflow-y: auto;
+            overflow: hidden;
         }
 
-        .editor-textarea {
+        .markdown-editor {
             width: 100%;
             height: 100%;
-            min-height: 400px;
+            padding: 24px;
             background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
+            border: none;
             color: var(--text-primary);
             font-family: 'JetBrains Mono', monospace;
             font-size: 14px;
             line-height: 1.6;
             resize: none;
-        }
-
-        .editor-textarea:focus {
             outline: none;
-            border-color: var(--accent-blue);
         }
 
-        .insights-panel {
-            width: 480px;
-            margin-top: 60px;
+        .markdown-editor::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 420px;
             background: var(--bg-secondary);
             display: flex;
             flex-direction: column;
+            overflow-y: auto;
         }
 
-        .insights-header {
-            padding: 20px 24px;
+        .analyze-section {
+            padding: 20px;
             border-bottom: 1px solid var(--border-color);
         }
 
-        .insights-title {
-            font-size: 18px;
+        .analyze-btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--accent-blue), #3a8eef);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .insights-subtitle {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .insights-filters {
+            cursor: pointer;
+            transition: all 0.2s;
             display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
-            padding: 16px 24px;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .analyze-btn.analyzing {
+            background: var(--bg-tertiary);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Sidebar Sections */
+        .sidebar-section {
+            padding: 20px;
             border-bottom: 1px solid var(--border-color);
-            overflow-x: auto;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        /* Score Gauge */
+        .score-gauge {
+            text-align: center;
+            padding: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .score-value {
+            font-size: 56px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .score-status {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 6px 16px;
+            background: rgba(74, 158, 255, 0.15);
+            border: 1px solid var(--accent-blue);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-blue);
+        }
+
+        /* Radar Chart */
+        .radar-container {
+            position: relative;
+            height: 280px;
+            margin-bottom: 20px;
+        }
+
+        .radar-hint {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 8px;
+        }
+
+        /* Filters */
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
         }
 
         .filter-chip {
@@ -239,8 +283,8 @@
             border-radius: 16px;
             font-size: 12px;
             cursor: pointer;
-            white-space: nowrap;
             transition: all 0.2s;
+            white-space: nowrap;
         }
 
         .filter-chip:hover {
@@ -253,10 +297,9 @@
             color: white;
         }
 
-        .insights-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
+        /* Insights */
+        .insights-container {
+            padding: 20px;
         }
 
         .insight-card {
@@ -270,10 +313,11 @@
 
         .insight-card:hover {
             border-color: var(--accent-blue);
+            transform: translateY(-1px);
         }
 
         .insight-card.mental-model {
-            border-left: 3px solid var(--accent-blue);
+            border-left: 3px solid #9b87f5;
         }
 
         .insight-card.stakeholder {
@@ -290,13 +334,13 @@
 
         .card-header {
             display: flex;
-            align-items: flex-start;
             gap: 12px;
             margin-bottom: 12px;
         }
 
         .card-icon {
             font-size: 20px;
+            flex-shrink: 0;
         }
 
         .card-meta {
@@ -304,7 +348,7 @@
         }
 
         .card-type {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-tertiary);
@@ -313,13 +357,14 @@
 
         .card-title {
             font-size: 14px;
-            font-weight: 500;
             line-height: 1.4;
+            font-weight: 500;
         }
 
         .card-severity {
             display: flex;
             gap: 4px;
+            align-items: center;
         }
 
         .severity-dot {
@@ -361,6 +406,7 @@
             color: white;
         }
 
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -466,84 +512,29 @@
             background: #3a8eef;
         }
 
+        .error-message {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid var(--accent-red);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: var(--accent-red);
+            font-size: 13px;
+        }
+
         .empty-state {
             text-align: center;
-            padding: 60px 40px;
+            padding: 40px 20px;
             color: var(--text-secondary);
         }
 
         .empty-state-icon {
             font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .empty-state-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-primary);
+            margin-bottom: 12px;
+            opacity: 0.5;
         }
 
         .empty-state-text {
-            font-size: 13px;
-        }
-
-        .analyzing-overlay {
-            position: absolute;
-            top: 60px;
-            right: 0;
-            width: 480px;
-            height: calc(100vh - 60px);
-            background: rgba(10, 14, 23, 0.95);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-
-        .analyzing-spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .analyzing-text {
-            margin-top: 24px;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .analyzing-subtext {
-            margin-top: 8px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .error-message {
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid var(--accent-red);
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px;
-            color: var(--accent-red);
-            font-size: 13px;
-        }
-
-        .success-message {
-            background: rgba(81, 207, 102, 0.1);
-            border: 1px solid var(--accent-green);
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px;
-            color: var(--accent-green);
             font-size: 13px;
         }
     </style>
@@ -552,9 +543,10 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         const STORAGE_KEY = 'speccheck_api_key';
+        const DIMENSION_MAP = ['technical', 'stakeholder', 'edgeCase', 'privacy', 'metrics'];
 
         const SAMPLE_PRD = `# Payment Flow Redesign - PRD
 
@@ -585,28 +577,182 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
 - Testing: 1 week
 - Launch: Week of March 15`;
 
+        const MOCK_INSIGHTS = [
+            {
+                id: 1,
+                type: 'edge-case',
+                category: 'Edge Case',
+                icon: '🔵',
+                title: 'What happens if the user loses internet during the checkout flow?',
+                severity: 3,
+                status: 'pending',
+                dimension: 'edgeCase'
+            },
+            {
+                id: 2,
+                type: 'stakeholder',
+                category: 'Stakeholder Alert',
+                icon: '🟡',
+                title: 'Have you coordinated the payment gateway integration timeline with the Security team?',
+                severity: 2,
+                status: 'pending',
+                dimension: 'stakeholder'
+            },
+            {
+                id: 3,
+                type: 'metric',
+                category: 'Metric Gap',
+                icon: '🔴',
+                title: "You haven't defined a 'Failure Metric' for this experiment.",
+                severity: 3,
+                status: 'pending',
+                dimension: 'metrics'
+            },
+            {
+                id: 4,
+                type: 'mental-model',
+                category: 'Mental Model',
+                icon: '🟣',
+                title: "You're assuming users understand the difference between 'save' and 'checkout'. What if they don't?",
+                severity: 2,
+                status: 'pending',
+                dimension: 'technical'
+            }
+        ];
+
         function SpecCheckApp() {
-            const [prdContent, setPrdContent] = useState('');
-            const [insights, setInsights] = useState([]);
+            const [prdContent, setPrdContent] = useState(SAMPLE_PRD);
+            const [insights, setInsights] = useState(MOCK_INSIGHTS);
             const [activeFilter, setActiveFilter] = useState('all');
             const [isAnalyzing, setIsAnalyzing] = useState(false);
             const [showApiSettings, setShowApiSettings] = useState(false);
             const [apiKey, setApiKey] = useState('');
             const [hasApiKey, setHasApiKey] = useState(false);
             const [errorMessage, setErrorMessage] = useState('');
-            const [successMessage, setSuccessMessage] = useState('');
+            const [radarData, setRadarData] = useState({
+                technical: 65,
+                stakeholder: 45,
+                edgeCase: 50,
+                privacy: 80,
+                metrics: 40
+            });
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
 
             useEffect(() => {
-                // Load API key from localStorage
                 const storedKey = localStorage.getItem(STORAGE_KEY);
                 if (storedKey) {
                     setApiKey(storedKey);
                     setHasApiKey(true);
                 }
-
-                // Load sample PRD
-                setPrdContent(SAMPLE_PRD);
             }, []);
+
+            useEffect(() => {
+                if (chartRef.current) {
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: ['Technical\nFeasibility', 'Stakeholder\nAlignment', 'Edge Case\nCoverage', 'Data\nPrivacy', 'Metric\nClarity'],
+                            datasets: [{
+                                label: 'Readiness Score',
+                                data: [
+                                    radarData.technical,
+                                    radarData.stakeholder,
+                                    radarData.edgeCase,
+                                    radarData.privacy,
+                                    radarData.metrics
+                                ],
+                                backgroundColor: 'rgba(74, 158, 255, 0.15)',
+                                borderColor: 'rgba(74, 158, 255, 0.8)',
+                                borderWidth: 2,
+                                pointBackgroundColor: 'rgba(74, 158, 255, 1)',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            onClick: (event, elements) => {
+                                if (elements.length > 0) {
+                                    const index = elements[0].index;
+                                    const dimensionType = DIMENSION_MAP[index];
+                                    handleRadarClick(dimensionType);
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    min: 0,
+                                    max: 100,
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 25,
+                                        color: '#6b7687',
+                                        backdropColor: 'transparent',
+                                        font: {
+                                            size: 10,
+                                            family: 'JetBrains Mono'
+                                        }
+                                    },
+                                    grid: {
+                                        color: '#2a3444',
+                                        circular: true
+                                    },
+                                    pointLabels: {
+                                        color: '#9ba5b8',
+                                        font: {
+                                            size: 11,
+                                            family: 'DM Sans',
+                                            weight: '500'
+                                        },
+                                        padding: 15
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    backgroundColor: '#1a2030',
+                                    titleColor: '#e8edf4',
+                                    bodyColor: '#9ba5b8',
+                                    borderColor: '#2a3444',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: false,
+                                    titleFont: {
+                                        size: 12,
+                                        family: 'DM Sans',
+                                        weight: '600'
+                                    },
+                                    bodyFont: {
+                                        size: 11,
+                                        family: 'DM Sans'
+                                    },
+                                    callbacks: {
+                                        afterBody: () => ['', 'Click to filter related insights']
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [radarData]);
 
             const saveApiKey = () => {
                 if (!apiKey.trim()) {
@@ -623,89 +769,31 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                 setHasApiKey(true);
                 setShowApiSettings(false);
                 setErrorMessage('');
-                setSuccessMessage('API key saved successfully!');
-                setTimeout(() => setSuccessMessage(''), 3000);
             };
 
-            const handleAnalyze = async () => {
-                if (!hasApiKey) {
-                    setShowApiSettings(true);
-                    return;
-                }
+            const handleRadarClick = (dimensionType) => {
+                const filterMap = {
+                    'technical': 'mental-model',
+                    'stakeholder': 'stakeholder',
+                    'edgeCase': 'edge-case',
+                    'privacy': 'all',
+                    'metrics': 'metric'
+                };
+                
+                const newFilter = filterMap[dimensionType] || 'all';
+                setActiveFilter(activeFilter === newFilter ? 'all' : newFilter);
+            };
 
-                if (!prdContent.trim()) {
-                    setErrorMessage('Please enter a PRD to analyze');
-                    return;
-                }
+            const calculateOverallScore = () => {
+                const avg = Object.values(radarData).reduce((a, b) => a + b, 0) / Object.values(radarData).length;
+                return Math.round(avg);
+            };
 
-                setIsAnalyzing(true);
-                setErrorMessage('');
-                setSuccessMessage('');
-                setInsights([]);
-
-                try {
-                    console.log('Making request to /api/analyze...');
-                    
-                    // Call our serverless function instead of Anthropic API directly
-                    const response = await fetch('/api/analyze', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            apiKey: apiKey,
-                            prdContent: prdContent
-                        })
-                    });
-
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', response.headers);
-
-                    // Get the response text first to see what we're actually getting
-                    const responseText = await response.text();
-                    console.log('Raw response:', responseText);
-
-                    if (!response.ok) {
-                        let errorMessage = 'Analysis failed';
-                        try {
-                            const errorData = JSON.parse(responseText);
-                            errorMessage = errorData.error || errorMessage;
-                        } catch (e) {
-                            // If we can't parse as JSON, show the raw response
-                            errorMessage = `Server error: ${responseText.substring(0, 200)}`;
-                        }
-                        throw new Error(errorMessage);
-                    }
-
-                    // Try to parse the response as JSON
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch (e) {
-                        throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 200)}`);
-                    }
-
-                    if (!data.insights || !Array.isArray(data.insights)) {
-                        throw new Error('Invalid response format: missing insights array');
-                    }
-                    
-                    // Add IDs and status to insights
-                    const insightsWithIds = data.insights.map((insight, index) => ({
-                        ...insight,
-                        id: index + 1,
-                        status: 'pending'
-                    }));
-                    
-                    setInsights(insightsWithIds);
-                    setIsAnalyzing(false);
-                    setSuccessMessage(`Analysis complete! Found ${insightsWithIds.length} insights.`);
-                    setTimeout(() => setSuccessMessage(''), 5000);
-
-                } catch (error) {
-                    console.error('Analysis error:', error);
-                    setErrorMessage(error.message || 'Analysis failed. Please check your API key and try again.');
-                    setIsAnalyzing(false);
-                }
+            const getScoreStatus = (score) => {
+                if (score >= 80) return 'Launch Ready';
+                if (score >= 60) return 'Almost There';
+                if (score >= 40) return 'Needs Work';
+                return 'High Risk';
             };
 
             const toggleCardStatus = (id) => {
@@ -714,145 +802,388 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                         ? { ...insight, status: insight.status === 'resolved' ? 'pending' : 'resolved' }
                         : insight
                 ));
+
+                const card = insights.find(i => i.id === id);
+                if (card && card.status === 'pending') {
+                    setRadarData(prev => ({
+                        ...prev,
+                        [card.dimension]: Math.min(100, prev[card.dimension] + 12)
+                    }));
+                } else if (card && card.status === 'resolved') {
+                    setRadarData(prev => ({
+                        ...prev,
+                        [card.dimension]: Math.max(0, prev[card.dimension] - 12)
+                    }));
+                }
             };
 
-            const loadSample = () => {
-                setPrdContent(SAMPLE_PRD);
+            const calculateRadarFromInsights = (insightsList) => {
+                const counts = {
+                    technical: 0,
+                    stakeholder: 0,
+                    edgeCase: 0,
+                    privacy: 0,
+                    metrics: 0
+                };
+
+                insightsList.forEach(insight => {
+                    if (insight.dimension && counts.hasOwnProperty(insight.dimension)) {
+                        counts[insight.dimension]++;
+                    }
+                });
+
+                const maxCount = Math.max(...Object.values(counts), 1);
+                
+                return {
+                    technical: Math.max(20, 100 - (counts.technical / maxCount) * 60),
+                    stakeholder: Math.max(20, 100 - (counts.stakeholder / maxCount) * 60),
+                    edgeCase: Math.max(20, 100 - (counts.edgeCase / maxCount) * 60),
+                    privacy: Math.max(20, 100 - (counts.privacy / maxCount) * 60),
+                    metrics: Math.max(20, 100 - (counts.metrics / maxCount) * 60)
+                };
             };
 
-            const clearPrd = () => {
-                setPrdContent('');
-                setInsights([]);
+            const generateMockInsights = (prdText) => {
+                const insights = [];
+                let id = 1;
+                const text = prdText.toLowerCase();
+
+                if (text.includes('checkout') || text.includes('payment')) {
+                    insights.push({
+                        id: id++,
+                        type: 'edge-case',
+                        category: 'Edge Case',
+                        icon: '🔵',
+                        title: 'What happens if the user loses internet during the checkout flow?',
+                        severity: 3,
+                        status: 'pending',
+                        dimension: 'edgeCase'
+                    });
+                }
+
+                if (text.includes('user') || text.includes('customer')) {
+                    insights.push({
+                        id: id++,
+                        type: 'edge-case',
+                        category: 'Edge Case',
+                        icon: '🔵',
+                        title: 'What happens for users with accessibility needs?',
+                        severity: 2,
+                        status: 'pending',
+                        dimension: 'edgeCase'
+                    });
+                }
+
+                if (text.includes('payment') || text.includes('gateway')) {
+                    insights.push({
+                        id: id++,
+                        type: 'stakeholder',
+                        category: 'Stakeholder Alert',
+                        icon: '🟡',
+                        title: 'Have you coordinated with the Security team?',
+                        severity: 2,
+                        status: 'pending',
+                        dimension: 'stakeholder'
+                    });
+                }
+
+                if (!text.includes('failure metric')) {
+                    insights.push({
+                        id: id++,
+                        type: 'metric',
+                        category: 'Metric Gap',
+                        icon: '🔴',
+                        title: "You haven't defined a 'Failure Metric' for this experiment.",
+                        severity: 3,
+                        status: 'pending',
+                        dimension: 'metrics'
+                    });
+                }
+
+                insights.push({
+                    id: id++,
+                    type: 'mental-model',
+                    category: 'Mental Model',
+                    icon: '🟣',
+                    title: "Are you assuming users understand the difference between 'save' and 'checkout'?",
+                    severity: 2,
+                    status: 'pending',
+                    dimension: 'technical'
+                });
+
+                return insights.length > 0 ? insights : MOCK_INSIGHTS;
             };
 
-            const filteredInsights = activeFilter === 'all' 
-                ? insights 
-                : insights.filter(i => i.type === activeFilter);
+            const handleAnalyze = async () => {
+                setIsAnalyzing(true);
+                setErrorMessage('');
+                
+                if (hasApiKey && apiKey) {
+                    try {
+                        const response = await fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                apiKey: apiKey,
+                                prdContent: prdContent
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('API analysis failed');
+                        }
+
+                        const data = await response.json();
+                        const newInsights = data.insights.map((insight, index) => ({
+                            ...insight,
+                            id: index + 1,
+                            status: 'pending'
+                        }));
+                        
+                        setInsights(newInsights);
+                        const radarUpdate = calculateRadarFromInsights(newInsights);
+                        setRadarData(radarUpdate);
+                        setIsAnalyzing(false);
+                    } catch (error) {
+                        console.error('API error:', error);
+                        setErrorMessage('API analysis failed. Using demo mode.');
+                        setTimeout(() => {
+                            const newInsights = generateMockInsights(prdContent);
+                            setInsights(newInsights);
+                            const radarUpdate = calculateRadarFromInsights(newInsights);
+                            setRadarData(radarUpdate);
+                            setIsAnalyzing(false);
+                            setErrorMessage('');
+                        }, 1000);
+                    }
+                } else {
+                    setTimeout(() => {
+                        const newInsights = generateMockInsights(prdContent);
+                        setInsights(newInsights);
+                        const radarUpdate = calculateRadarFromInsights(newInsights);
+                        setRadarData(radarUpdate);
+                        setIsAnalyzing(false);
+                    }, 2000);
+                }
+            };
+
+            const handleExport = () => {
+                const overallScore = calculateOverallScore();
+                const scoreStatus = getScoreStatus(overallScore);
+                
+                const reportWindow = window.open('', '_blank');
+                reportWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Spec-Check Readiness Report</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+                            h1 { color: #0a0e17; border-bottom: 3px solid #4a9eff; padding-bottom: 10px; }
+                            .score { font-size: 48px; color: #4a9eff; font-weight: bold; }
+                            .status { color: #666; font-size: 18px; }
+                            .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 30px 0; }
+                            .metric { background: #f5f5f5; padding: 15px; border-radius: 8px; }
+                            .metric-name { font-weight: 600; margin-bottom: 5px; }
+                            .metric-score { font-size: 24px; color: #4a9eff; }
+                            .insights { margin-top: 40px; }
+                            .insight { padding: 15px; margin: 10px 0; background: #f9f9f9; border-left: 4px solid #4a9eff; }
+                            .insight.resolved { opacity: 0.6; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Spec-Check Readiness Report</h1>
+                        <div class="score">${overallScore}%</div>
+                        <div class="status">${scoreStatus}</div>
+                        
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="metric-name">Technical Feasibility</div>
+                                <div class="metric-score">${radarData.technical}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-name">Stakeholder Alignment</div>
+                                <div class="metric-score">${radarData.stakeholder}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-name">Edge Case Coverage</div>
+                                <div class="metric-score">${radarData.edgeCase}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-name">Data Privacy</div>
+                                <div class="metric-score">${radarData.privacy}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-name">Metric Clarity</div>
+                                <div class="metric-score">${radarData.metrics}%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="insights">
+                            <h2>Insights Summary</h2>
+                            ${insights.map(i => `
+                                <div class="insight ${i.status}">
+                                    <strong>${i.category}:</strong> ${i.title}
+                                    ${i.status === 'resolved' ? ' <span style="color: #51cf66;">✓ Resolved</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <p style="margin-top: 40px; color: #999; font-size: 12px;">
+                            Generated by Spec-Check on ${new Date().toLocaleDateString()}
+                        </p>
+                    </body>
+                    </html>
+                `);
+            };
+
+            const overallScore = calculateOverallScore();
+            const scoreStatus = getScoreStatus(overallScore);
+            
+            const filteredInsights = insights.filter(i => {
+                if (activeFilter === 'all') return i.status === 'pending';
+                return i.status === 'pending' && i.type === activeFilter;
+            });
 
             return (
                 <div className="app-container">
                     <header className="app-header">
-                        <div className="header-logo">
-                            Spec-Check
-                            <span className="header-badge">AI Powered</span>
+                        <div className="app-logo">
+                            Spec<span>-Check</span>
                         </div>
                         <div className="header-actions">
-                            <div className="api-status">
-                                <div className={`api-status-dot ${hasApiKey ? 'active' : ''}`}></div>
-                                {hasApiKey ? 'API Connected' : 'No API Key'}
-                            </div>
                             <button className="header-btn" onClick={() => setShowApiSettings(true)}>
-                                ⚙️ API Key
+                                ⚙️ {hasApiKey ? 'API Connected' : 'Add API Key'}
                             </button>
+                            <button className="header-btn" onClick={handleExport}>📊 Export Report</button>
                         </div>
                     </header>
 
-                    <div className="editor-panel">
-                        <div className="editor-toolbar">
-                            <button 
-                                className="toolbar-btn primary" 
-                                onClick={handleAnalyze}
-                                disabled={isAnalyzing}
-                            >
-                                {isAnalyzing ? '⏳ Analyzing...' : '🔍 Analyze PRD'}
-                            </button>
-                            <button className="toolbar-btn" onClick={loadSample}>📄 Load Example</button>
-                            <button className="toolbar-btn" onClick={clearPrd}>🗑️ Clear</button>
+                    <div className="main-content">
+                        <div className="editor-pane">
+                            <div className="editor-header">
+                                <div className="editor-title">Product Requirements Document</div>
+                            </div>
+                            <div className="editor-content">
+                                <textarea
+                                    className="markdown-editor"
+                                    value={prdContent}
+                                    onChange={(e) => setPrdContent(e.target.value)}
+                                    placeholder="Start writing your PRD here... The AI will analyze it in real-time."
+                                />
+                            </div>
                         </div>
-                        <div className="editor-content">
-                            <textarea
-                                className="editor-textarea"
-                                value={prdContent}
-                                onChange={(e) => setPrdContent(e.target.value)}
-                                placeholder="Paste your PRD here..."
-                            />
-                        </div>
-                    </div>
 
-                    <aside className="insights-panel">
-                        {errorMessage && (
-                            <div className="error-message">{errorMessage}</div>
-                        )}
-                        {successMessage && (
-                            <div className="success-message">{successMessage}</div>
-                        )}
-                        
-                        <div className="insights-header">
-                            <div className="insights-title">Premortem Insights</div>
-                            <div className="insights-subtitle">
-                                {insights.length} insights found • {insights.filter(i => i.status === 'resolved').length} resolved
+                        <aside className="sidebar">
+                            <div className="analyze-section">
+                                <button 
+                                    className={`analyze-btn ${isAnalyzing ? 'analyzing' : ''}`}
+                                    onClick={handleAnalyze}
+                                    disabled={isAnalyzing}
+                                >
+                                    {isAnalyzing ? (
+                                        <>
+                                            <span className="spinner"></span>
+                                            Analyzing PRD...
+                                        </>
+                                    ) : (
+                                        <>
+                                            🔍 Analyze Document
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </div>
-                        
-                        {insights.length > 0 && (
-                            <div className="insights-filters">
-                                <div 
-                                    className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`}
-                                    onClick={() => setActiveFilter('all')}
-                                >
-                                    All
-                                </div>
-                                <div 
-                                    className={`filter-chip ${activeFilter === 'mental-model' ? 'active' : ''}`}
-                                    onClick={() => setActiveFilter('mental-model')}
-                                >
-                                    🔵 Mental Model
-                                </div>
-                                <div 
-                                    className={`filter-chip ${activeFilter === 'stakeholder' ? 'active' : ''}`}
-                                    onClick={() => setActiveFilter('stakeholder')}
-                                >
-                                    🟡 Stakeholder
-                                </div>
-                                <div 
-                                    className={`filter-chip ${activeFilter === 'edge-case' ? 'active' : ''}`}
-                                    onClick={() => setActiveFilter('edge-case')}
-                                >
-                                    🔴 Edge Case
-                                </div>
-                                <div 
-                                    className={`filter-chip ${activeFilter === 'metric' ? 'active' : ''}`}
-                                    onClick={() => setActiveFilter('metric')}
-                                >
-                                    🟢 Metric
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div className="insights-list">
-                            {insights.length === 0 && !isAnalyzing && (
-                                <div className="empty-state">
-                                    <div className="empty-state-icon">📋</div>
-                                    <div className="empty-state-title">No Analysis Yet</div>
-                                    <div className="empty-state-text">
-                                        Click "Analyze PRD" to get AI-powered premortem insights
-                                    </div>
+
+                            {errorMessage && (
+                                <div className="sidebar-section">
+                                    <div className="error-message">{errorMessage}</div>
                                 </div>
                             )}
-                            
-                            {filteredInsights.map(insight => (
-                                <InsightCard 
-                                    key={insight.id} 
-                                    insight={insight} 
-                                    onToggle={toggleCardStatus}
-                                />
-                            ))}
-                        </div>
-                        
-                        {isAnalyzing && (
-                            <div className="analyzing-overlay">
-                                <div className="analyzing-spinner"></div>
-                                <div className="analyzing-text">Analyzing PRD...</div>
-                                <div className="analyzing-subtext">Claude is reviewing your spec</div>
+
+                            <div className="sidebar-section">
+                                <div className="score-gauge">
+                                    <div className="score-value">{overallScore}%</div>
+                                    <div className="score-label">Overall Readiness</div>
+                                    <div className="score-status">{scoreStatus}</div>
+                                </div>
+
+                                <div className="section-title">Readiness Radar</div>
+                                <div className="radar-container">
+                                    <canvas ref={chartRef}></canvas>
+                                </div>
+                                <div className="radar-hint">Click dimensions to filter insights</div>
                             </div>
-                        )}
-                    </aside>
+
+                            <div className="sidebar-section">
+                                <div className="section-title">Filter Insights</div>
+                                <div className="filter-chips">
+                                    <div 
+                                        className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setActiveFilter('all')}
+                                    >
+                                        All
+                                    </div>
+                                    <div 
+                                        className={`filter-chip ${activeFilter === 'mental-model' ? 'active' : ''}`}
+                                        onClick={() => setActiveFilter('mental-model')}
+                                    >
+                                        🟣 Mental Model
+                                    </div>
+                                    <div 
+                                        className={`filter-chip ${activeFilter === 'stakeholder' ? 'active' : ''}`}
+                                        onClick={() => setActiveFilter('stakeholder')}
+                                    >
+                                        🟡 Stakeholder
+                                    </div>
+                                    <div 
+                                        className={`filter-chip ${activeFilter === 'edge-case' ? 'active' : ''}`}
+                                        onClick={() => setActiveFilter('edge-case')}
+                                    >
+                                        🔵 Edge Case
+                                    </div>
+                                    <div 
+                                        className={`filter-chip ${activeFilter === 'metric' ? 'active' : ''}`}
+                                        onClick={() => setActiveFilter('metric')}
+                                    >
+                                        🔴 Metric
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="insights-container">
+                                {filteredInsights.length === 0 ? (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">✓</div>
+                                        <div className="empty-state-text">
+                                            {activeFilter === 'all' 
+                                                ? 'All insights resolved!'
+                                                : 'No insights in this category'}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    filteredInsights.map(insight => (
+                                        <InsightCard 
+                                            key={insight.id} 
+                                            insight={insight} 
+                                            onToggle={toggleCardStatus}
+                                        />
+                                    ))
+                                )}
+                            </div>
+                        </aside>
+                    </div>
 
                     {showApiSettings && (
                         <div className="modal-overlay" onClick={() => setShowApiSettings(false)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-title">API Configuration</div>
-                                <div className="modal-subtitle">Enter your Claude API key to enable real-time analysis</div>
+                                <div className="modal-subtitle">Enter your Claude API key for real-time AI analysis</div>
+                                
+                                {errorMessage && (
+                                    <div className="error-message">{errorMessage}</div>
+                                )}
                                 
                                 <label className="modal-label">Claude API Key</label>
                                 <input
@@ -865,7 +1196,9 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                                 
                                 <div className="modal-help">
                                     Get your API key from <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>
-                                    <br />Your key is stored locally in your browser and never sent to anyone except Anthropic's API.
+                                    <br />Your key is stored locally and sent only to Anthropic's API.
+                                    <br /><br />
+                                    <strong>No API key?</strong> The tool works in demo mode with mock insights.
                                 </div>
                                 
                                 <div className="modal-actions">
