@@ -8,7 +8,7 @@ AI-powered tool that analyzes Product Requirement Documents (PRDs) to identify p
 
 ## 📋 How to Use
 
-1. Visit the live demo
+1. Visit the live demo linked above
 2. Click "⚙️ API Key" in the header
 3. Get a free API key from [console.anthropic.com](https://console.anthropic.com/)
 4. Paste your API key and click "Save"
