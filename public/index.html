@@ -258,8 +258,14 @@
         /* Radar Chart */
         .radar-container {
             position: relative;
-            height: 280px;
-            margin-bottom: 20px;
+            height: 320px;
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto 20px auto;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .radar-hint {
@@ -591,7 +597,13 @@
                     chartInstance.current = new Chart(ctx, {
                         type: 'radar',
                         data: {
-                            labels: ['Technical\nFeasibility', 'Stakeholder\nAlignment', 'Edge Case\nCoverage', 'Data\nPrivacy', 'Metric\nClarity'],
+                            labels: [
+                                ['Technical', 'Feasibility'], 
+                                ['Stakeholder', 'Alignment'], 
+                                ['Edge Case', 'Coverage'], 
+                                ['Data', 'Privacy'], 
+                                ['Metric', 'Clarity']
+                            ],
                             datasets: [{
                                 label: 'Readiness Score',
                                 data: [
@@ -614,6 +626,14 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: true,
+                            layout: {
+                                padding: {
+                                    top: 20,
+                                    right: 20,
+                                    bottom: 20,
+                                    left: 20
+                                }
+                            },
                             onClick: (event, elements) => {
                                 if (elements.length > 0) {
                                     const index = elements[0].index;
@@ -646,7 +666,7 @@
                                             family: 'DM Sans',
                                             weight: '500'
                                         },
-                                        padding: 15
+                                        padding: 25
                                     }
                                 }
                             },
