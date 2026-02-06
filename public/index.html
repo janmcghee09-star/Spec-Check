@@ -549,77 +549,9 @@
         const STORAGE_KEY = 'speccheck_api_key';
         const DIMENSION_MAP = ['technical', 'stakeholder', 'edgeCase', 'privacy', 'metrics'];
 
-        const SAMPLE_PRD = `# Payment Flow Redesign - PRD
+        const SAMPLE_PRD = '';
 
-## Overview
-Redesign the checkout payment flow to improve conversion and reduce cart abandonment.
-
-## Success Metrics
-- Increase checkout completion rate by 15%
-- Reduce payment errors by 50%
-- Maintain or improve transaction security
-
-## User Flow
-1. User adds items to cart
-2. Proceeds to checkout
-3. Enters shipping information
-4. Selects payment method
-5. Confirms and completes purchase
-
-## Technical Requirements
-- Support multiple payment methods (credit card, PayPal, Apple Pay)
-- PCI DSS compliance
-- Mobile-responsive design
-- Integration with existing order management system
-
-## Timeline
-- Design: 2 weeks
-- Development: 4 weeks
-- Testing: 1 week
-- Launch: Week of March 15`;
-
-        const MOCK_INSIGHTS = [
-            {
-                id: 1,
-                type: 'edge-case',
-                category: 'Edge Case',
-                icon: '🔵',
-                title: 'What happens if the user loses internet during the checkout flow?',
-                severity: 3,
-                status: 'pending',
-                dimension: 'edgeCase'
-            },
-            {
-                id: 2,
-                type: 'stakeholder',
-                category: 'Stakeholder Alert',
-                icon: '🟡',
-                title: 'Have you coordinated the payment gateway integration timeline with the Security team?',
-                severity: 2,
-                status: 'pending',
-                dimension: 'stakeholder'
-            },
-            {
-                id: 3,
-                type: 'metric',
-                category: 'Metric Gap',
-                icon: '🔴',
-                title: "You haven't defined a 'Failure Metric' for this experiment.",
-                severity: 3,
-                status: 'pending',
-                dimension: 'metrics'
-            },
-            {
-                id: 4,
-                type: 'mental-model',
-                category: 'Mental Model',
-                icon: '🟣',
-                title: "You're assuming users understand the difference between 'save' and 'checkout'. What if they don't?",
-                severity: 2,
-                status: 'pending',
-                dimension: 'technical'
-            }
-        ];
+        const MOCK_INSIGHTS = [];
 
         function SpecCheckApp() {
             const [prdContent, setPrdContent] = useState(SAMPLE_PRD);
@@ -631,11 +563,11 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
             const [hasApiKey, setHasApiKey] = useState(false);
             const [errorMessage, setErrorMessage] = useState('');
             const [radarData, setRadarData] = useState({
-                technical: 65,
-                stakeholder: 45,
-                edgeCase: 50,
-                privacy: 80,
-                metrics: 40
+                technical: 0,
+                stakeholder: 0,
+                edgeCase: 0,
+                privacy: 0,
+                metrics: 0
             });
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
@@ -854,7 +786,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                         id: id++,
                         type: 'edge-case',
                         category: 'Edge Case',
-                        icon: '🔵',
+                        icon: 'ðŸ”µ',
                         title: 'What happens if the user loses internet during the checkout flow?',
                         severity: 3,
                         status: 'pending',
@@ -867,7 +799,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                         id: id++,
                         type: 'edge-case',
                         category: 'Edge Case',
-                        icon: '🔵',
+                        icon: 'ðŸ”µ',
                         title: 'What happens for users with accessibility needs?',
                         severity: 2,
                         status: 'pending',
@@ -880,7 +812,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                         id: id++,
                         type: 'stakeholder',
                         category: 'Stakeholder Alert',
-                        icon: '🟡',
+                        icon: 'ðŸŸ¡',
                         title: 'Have you coordinated with the Security team?',
                         severity: 2,
                         status: 'pending',
@@ -893,7 +825,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                         id: id++,
                         type: 'metric',
                         category: 'Metric Gap',
-                        icon: '🔴',
+                        icon: 'ðŸ”´',
                         title: "You haven't defined a 'Failure Metric' for this experiment.",
                         severity: 3,
                         status: 'pending',
@@ -905,7 +837,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                     id: id++,
                     type: 'mental-model',
                     category: 'Mental Model',
-                    icon: '🟣',
+                    icon: 'ðŸŸ£',
                     title: "Are you assuming users understand the difference between 'save' and 'checkout'?",
                     severity: 2,
                     status: 'pending',
@@ -1027,7 +959,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                             ${insights.map(i => `
                                 <div class="insight ${i.status}">
                                     <strong>${i.category}:</strong> ${i.title}
-                                    ${i.status === 'resolved' ? ' <span style="color: #51cf66;">✓ Resolved</span>' : ''}
+                                    ${i.status === 'resolved' ? ' <span style="color: #51cf66;">âœ“ Resolved</span>' : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -1056,9 +988,9 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                         </div>
                         <div className="header-actions">
                             <button className="header-btn" onClick={() => setShowApiSettings(true)}>
-                                ⚙️ {hasApiKey ? 'API Connected' : 'Add API Key'}
+                                âš™ï¸ {hasApiKey ? 'API Connected' : 'Add API Key'}
                             </button>
-                            <button className="header-btn" onClick={handleExport}>📊 Export Report</button>
+                            <button className="header-btn" onClick={handleExport}>ðŸ“Š Export Report</button>
                         </div>
                     </header>
 
@@ -1091,7 +1023,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                                         </>
                                     ) : (
                                         <>
-                                            🔍 Analyze Document
+                                            ðŸ” Analyze Document
                                         </>
                                     )}
                                 </button>
@@ -1130,25 +1062,25 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                                         className={`filter-chip ${activeFilter === 'mental-model' ? 'active' : ''}`}
                                         onClick={() => setActiveFilter('mental-model')}
                                     >
-                                        🟣 Mental Model
+                                        ðŸŸ£ Mental Model
                                     </div>
                                     <div 
                                         className={`filter-chip ${activeFilter === 'stakeholder' ? 'active' : ''}`}
                                         onClick={() => setActiveFilter('stakeholder')}
                                     >
-                                        🟡 Stakeholder
+                                        ðŸŸ¡ Stakeholder
                                     </div>
                                     <div 
                                         className={`filter-chip ${activeFilter === 'edge-case' ? 'active' : ''}`}
                                         onClick={() => setActiveFilter('edge-case')}
                                     >
-                                        🔵 Edge Case
+                                        ðŸ”µ Edge Case
                                     </div>
                                     <div 
                                         className={`filter-chip ${activeFilter === 'metric' ? 'active' : ''}`}
                                         onClick={() => setActiveFilter('metric')}
                                     >
-                                        🔴 Metric
+                                        ðŸ”´ Metric
                                     </div>
                                 </div>
                             </div>
@@ -1156,7 +1088,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                             <div className="insights-container">
                                 {filteredInsights.length === 0 ? (
                                     <div className="empty-state">
-                                        <div className="empty-state-icon">✓</div>
+                                        <div className="empty-state-icon">âœ“</div>
                                         <div className="empty-state-text">
                                             {activeFilter === 'all' 
                                                 ? 'All insights resolved!'
@@ -1240,7 +1172,7 @@ Redesign the checkout payment flow to improve conversion and reduce cart abandon
                             className={`card-action-btn ${insight.status === 'resolved' ? 'resolved' : ''}`}
                             onClick={() => onToggle(insight.id)}
                         >
-                            {insight.status === 'resolved' ? '✓ Resolved' : 'Mark Resolved'}
+                            {insight.status === 'resolved' ? 'âœ“ Resolved' : 'Mark Resolved'}
                         </button>
                     </div>
                 </div>
